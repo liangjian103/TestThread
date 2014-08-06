@@ -11,7 +11,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.log4j.Logger;
 
 /**
- * 并行计算 请运行当前类中的Main方法来学习该类的用法及作用。
+ * <h1>并行计算框架</h1> <h2>框架描述:</h2> 该并行计算框架主要将较大的List切分为多份，并行处理。<br>
+ * </br>
+ * 请运行当前类中的Main方法来学习该类的用法及作用。</br>
+ * ParallelComputing<String, String> p = new ParallelComputing<String, String>("TestMyService");</br>
+ * boolean boo1 = p.processForDataShard(list, new ParallelComputingProcessImpl(), 3000, "外部数据");</br>
+ * boolean boo2 = p.processForThread(list, new ParallelComputingProcessImpl(), Runtime.getRuntime().availableProcessors(), "外部数据");</br>
  * 
  * @param ListType
  *            需并行处理的List泛型
@@ -23,37 +28,43 @@ public class ParallelComputing<ListType, ParameterType> {
 
 	private Logger logger = Logger.getLogger(ParallelComputing.class);
 
+	/** 线程池门面类 */
 	private ExecutorService pool;
 
 	/** 业务名称 */
 	private String serviceName = "DefaultService";
 
-	/** 默认构造,默认的ServiceName,默认使用 newCachedThreadPool连接池 */
+	/** 默认构造,默认的ServiceName,默认使用newCachedThreadPool(可重用并在60秒内自动伸缩的线程池)来管理 */
 	public ParallelComputing() {
 		pool = newCachedThreadPool(serviceName);
 	}
 
-	/** 默认指定serviceName,使用newCachedThreadPool连接池来管理 */
+	/** 指定serviceName,使用newCachedThreadPool(可重用并在60秒内自动伸缩的线程池)来管理 */
 	public ParallelComputing(String serviceName) {
 		this.serviceName = serviceName;
 		pool = newCachedThreadPool(serviceName);
 	}
 
-	/** 指定serviceName,newFixedThreadPool线程池池 ，指定固定线程池数量 */
+	/** 指定serviceName,newFixedThreadPool(可重用固定线程数的线程池) ，指定固定线程池数量 */
 	public ParallelComputing(String serviceName, int nThreads) {
 		this.serviceName = serviceName;
+		pool = newFixedThreadPool(nThreads, serviceName);
+	}
+
+	/** 默认serviceName,newFixedThreadPool(可重用固定线程数的线程池) ，指定固定线程池数量 */
+	public ParallelComputing(int nThreads) {
 		pool = newFixedThreadPool(nThreads, serviceName);
 	}
 
 	/** 创建一个可重用固定线程数的线程池 */
 	private ExecutorService newFixedThreadPool(int num, final String serviceName) {
 		ExecutorService pool = Executors.newFixedThreadPool(num, new ThreadFactory() {
-			AtomicInteger a = new AtomicInteger();// 原子记数
+			AtomicInteger atomicInteger = new AtomicInteger();// 原子记数
 
 			@Override
 			public Thread newThread(Runnable r) {
 				Thread t = new Thread(r);
-				t.setName(serviceName + "-" + a.getAndIncrement());
+				t.setName(serviceName + "-" + atomicInteger.getAndIncrement());
 				return t;
 			}
 		});
@@ -63,12 +74,12 @@ public class ParallelComputing<ListType, ParameterType> {
 	/** 创建一个可重用并在60秒内自动伸缩的线程池 */
 	private ExecutorService newCachedThreadPool(final String serviceName) {
 		ExecutorService pool = Executors.newCachedThreadPool(new ThreadFactory() {
-			AtomicInteger a = new AtomicInteger();// 原子记数
+			AtomicInteger atomicInteger = new AtomicInteger();// 原子记数
 
 			@Override
 			public Thread newThread(Runnable r) {
 				Thread t = new Thread(r);
-				t.setName(serviceName + "-" + a.getAndIncrement());
+				t.setName(serviceName + "-" + atomicInteger.getAndIncrement());
 				return t;
 			}
 		});
@@ -83,12 +94,12 @@ public class ParallelComputing<ListType, ParameterType> {
 	}
 
 	/**
-	 * 并行执行的任务-按数据长度切分任务数
+	 * 并行执行的任务-按数据list长度切分任务数
 	 * 
 	 * @param list
 	 *            需并行处理的数据
 	 * @param process
-	 *            业务实现类
+	 *            业务实现类，需实现ParallelComputingProcess接口。
 	 * @param dataShardSize
 	 *            每个线程处理条数,小于2000按2000处理
 	 */
@@ -145,6 +156,7 @@ public class ParallelComputing<ListType, ParameterType> {
 		try {
 			latch.await();// 等待子线程结束
 		} catch (InterruptedException e) {
+			logger.error(serviceName + "-processForDataShard ERROR!", e);
 			e.printStackTrace();
 			return false;
 		}
@@ -160,7 +172,7 @@ public class ParallelComputing<ListType, ParameterType> {
 	 * @param process
 	 *            业务实现类
 	 * @param threadNum
-	 *            启动任务处理数
+	 *            启动任务处理数,推荐获取CPU数(Runtime.getRuntime().availableProcessors())
 	 *            （如果任务数小于等于0,则单线程处理,如果任务数大于20,则只启动20个线程处理,如果数据小于2000条，则单线程处理）
 	 */
 	public boolean processForThread(List<ListType> list, ParallelComputingProcess<ListType, ParameterType> process, int threadNum, ParameterType obj) {
@@ -214,6 +226,7 @@ public class ParallelComputing<ListType, ParameterType> {
 		try {
 			latch.await();// 等待子线程结束
 		} catch (InterruptedException e) {
+			logger.error(serviceName + "-processForThread ERROR!", e);
 			e.printStackTrace();
 			return false;
 		}
@@ -227,18 +240,18 @@ public class ParallelComputing<ListType, ParameterType> {
 	}
 
 	public static void main(String[] args) {
-		ParallelComputing<String, String> p = new ParallelComputing<String, String>("Test");
-		// ParallelComputing<String, String> p = new ParallelComputing<String,
-		// String>();
+		ParallelComputing<String, String> p = new ParallelComputing<String, String>("TestMyService");
 		List<String> list = new ArrayList<String>();
+		// 拼装测试数据
 		for (int i = 0; i <= 5001; i++) {
 			list.add("_" + i);
 		}
 		long time = System.currentTimeMillis();
+		// 处理50次
 		for (int i = 0; i < 50; i++) {
 			boolean boo1 = p.processForDataShard(list, new ParallelComputingProcessImpl(), 3000, "TTTT");
 			System.out.println("按数据长度切分任务数-并行处理完毕:" + boo1);
-			boolean boo2 = p.processForThread(list, new ParallelComputingProcessImpl(), 3, "TEST");
+			boolean boo2 = p.processForThread(list, new ParallelComputingProcessImpl(), Runtime.getRuntime().availableProcessors(), "TEST");
 			System.out.println("按设置任务数-并行处理完毕:" + boo2);
 		}
 		p.colse();
