@@ -18,6 +18,7 @@ public class TestCachedThreadPool {
 				return t;
 			}
 		});
+		
 		// 创建实现了Runnable接口对象，Thread对象当然也实现了Runnable接口
 		Thread t1 = new MyThread();
 		Thread t2 = new MyThread();
