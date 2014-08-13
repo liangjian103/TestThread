@@ -1,6 +1,5 @@
 package com.lj.util;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -26,7 +25,7 @@ import org.apache.log4j.Logger;
  */
 public class ParallelComputing<ListType, ParameterType> {
 
-	private static final Logger logger = Logger.getLogger(ParallelComputing.class);
+	private Logger logger = Logger.getLogger(ParallelComputing.class);
 
 	/** 线程池门面类 */
 	private ExecutorService pool;
@@ -126,7 +125,7 @@ public class ParallelComputing<ListType, ParameterType> {
 				int toIndex = ((i + 1) * dataShardSize);
 				final List<ListType> listShard = list.subList(fromIndex, toIndex);
 				final int threadId = i;
-				Runnable t = new Runnable() {
+				Thread t = new Thread() {
 					@Override
 					public void run() {
 						job(threadId, listShard, processShard, object);
@@ -142,7 +141,7 @@ public class ParallelComputing<ListType, ParameterType> {
 			int toIndex = listSize;
 			final List<ListType> listShard = list.subList(fromIndex, toIndex);
 			final int threadId = threadNum;
-			Runnable t = new Runnable() {
+			Thread t = new Thread() {
 				@Override
 				public void run() {
 					job(threadId, listShard, processShard, object);
@@ -198,7 +197,7 @@ public class ParallelComputing<ListType, ParameterType> {
 			int toIndex = ((i + 1) * everyListNum);
 			final List<ListType> listShard = list.subList(fromIndex, toIndex);
 			final int threadId = i;
-			Runnable t = new Runnable() {
+			Thread t = new Thread() {
 				@Override
 				public void run() {
 					job(threadId, listShard, processShard, object);
@@ -213,7 +212,7 @@ public class ParallelComputing<ListType, ParameterType> {
 			int toIndex = listSize;
 			final List<ListType> listShard = list.subList(fromIndex, toIndex);
 			final int threadId = threadNum;
-			Runnable t = new Runnable() {
+			Thread t = new Thread() {
 				@Override
 				public void run() {
 					job(threadId, listShard, processShard, object);
@@ -238,24 +237,4 @@ public class ParallelComputing<ListType, ParameterType> {
 	private void job(int threadId, List<ListType> list, ParallelComputingProcess<ListType, ParameterType> process, ParameterType obj) {
 		process.process(threadId, list, obj);
 	}
-
-	// public static void main(String[] args) {
-	// 	ParallelComputing<String, String> p = new ParallelComputing<String, String>("TestMyService");
-	// 	List<String> list = new ArrayList<String>();
-	// 	// 拼装测试数据
-	// 	for (int i = 0; i <= 5001; i++) {
-	// 		list.add("_" + i);
-	// 	}
-	// 	long time = System.currentTimeMillis();
-	// 	// 处理50次
-	// 	for (int i = 0; i < 50; i++) {
-	// 		boolean boo1 = p.processForDataShard(list, new ParallelComputingProcessImpl(), 3000, "TTTT");
-	// 		System.out.println("按数据长度切分任务数-并行处理完毕:" + boo1);
-	// 		boolean boo2 = p.processForThread(list, new ParallelComputingProcessImpl(), Runtime.getRuntime().availableProcessors(), "TEST");
-	// 		System.out.println("按设置任务数-并行处理完毕:" + boo2);
-	// 	}
-	// 	p.colse();
-
-	// 	System.out.println((System.currentTimeMillis() - time) + "ms");
-	// }
 }
