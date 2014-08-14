@@ -25,7 +25,7 @@ import org.apache.log4j.Logger;
  */
 public class ParallelComputing<ListType, ParameterType> {
 
-	private Logger logger = Logger.getLogger(ParallelComputing.class);
+	private static final Logger logger = Logger.getLogger(ParallelComputing.class);
 
 	/** 线程池门面类 */
 	private ExecutorService pool;
@@ -125,7 +125,7 @@ public class ParallelComputing<ListType, ParameterType> {
 				int toIndex = ((i + 1) * dataShardSize);
 				final List<ListType> listShard = list.subList(fromIndex, toIndex);
 				final int threadId = i;
-				Thread t = new Thread() {
+				Runnable t = new Runnable() {
 					@Override
 					public void run() {
 						job(threadId, listShard, processShard, object);
@@ -141,7 +141,7 @@ public class ParallelComputing<ListType, ParameterType> {
 			int toIndex = listSize;
 			final List<ListType> listShard = list.subList(fromIndex, toIndex);
 			final int threadId = threadNum;
-			Thread t = new Thread() {
+			Runnable t = new Runnable() {
 				@Override
 				public void run() {
 					job(threadId, listShard, processShard, object);
@@ -197,7 +197,7 @@ public class ParallelComputing<ListType, ParameterType> {
 			int toIndex = ((i + 1) * everyListNum);
 			final List<ListType> listShard = list.subList(fromIndex, toIndex);
 			final int threadId = i;
-			Thread t = new Thread() {
+			Runnable t = new Runnable() {
 				@Override
 				public void run() {
 					job(threadId, listShard, processShard, object);
@@ -212,7 +212,7 @@ public class ParallelComputing<ListType, ParameterType> {
 			int toIndex = listSize;
 			final List<ListType> listShard = list.subList(fromIndex, toIndex);
 			final int threadId = threadNum;
-			Thread t = new Thread() {
+			Runnable t = new Runnable() {
 				@Override
 				public void run() {
 					job(threadId, listShard, processShard, object);
